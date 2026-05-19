@@ -10,7 +10,6 @@ import type {
 } from "@/types";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTrip } from "@/contexts/TripContext";
-import * as api from "@/lib/supabase/trips";
 
 export type LegacyTripStore = {
   contributions: Contribution[];
@@ -140,15 +139,12 @@ function buildState(deps: {
         typeof window === "undefined"
           ? true
           : window.confirm(
-              "Leave this trip? Your contributions/expenses will remain for other members."
+              "Clear all contributions and expenses for this trip? Other members will see them disappear too. You'll remain a member."
             );
       if (!ok) return;
-      const id = trip.activeTripId;
       try {
-        await api.leaveTrip(id);
-        await trip.setActiveTrip(null);
-        toast.success("Left trip");
-        router.push("/trips");
+        await trip.resetTripData();
+        toast.success("Trip data cleared");
       } catch (e) {
         const msg = e instanceof Error ? e.message : String(e);
         toast.error(msg);

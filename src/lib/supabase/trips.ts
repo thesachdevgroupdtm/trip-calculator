@@ -164,6 +164,21 @@ export async function updateTrip(
   if (error) throw new Error(error.message);
 }
 
+export async function resetTripData(tripId: string): Promise<void> {
+  const supabase = getSupabaseBrowserClient();
+  const { error: cErr } = await supabase
+    .from("contributions")
+    .delete()
+    .eq("trip_id", tripId);
+  if (cErr) throw new Error(cErr.message);
+
+  const { error: eErr } = await supabase
+    .from("expenses")
+    .delete()
+    .eq("trip_id", tripId);
+  if (eErr) throw new Error(eErr.message);
+}
+
 export async function leaveTrip(tripId: string): Promise<void> {
   const supabase = getSupabaseBrowserClient();
   const userId = await currentUserId();

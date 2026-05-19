@@ -45,6 +45,8 @@ type TripCtx = {
     qr_image?: string | null;
     upi_id?: string | null;
   }) => Promise<void>;
+
+  resetTripData: () => Promise<void>;
 };
 
 const Ctx = createContext<TripCtx | null>(null);
@@ -202,6 +204,17 @@ export function TripProvider({ children }: { children: ReactNode }) {
       await api.updateTrip(activeTripId, patch);
       const t = await api.getTrip(activeTripId);
       setTrip(t);
+    },
+
+    resetTripData: async () => {
+      if (!activeTripId) throw new Error("No active trip");
+      await api.resetTripData(activeTripId);
+      const [c, e] = await Promise.all([
+        api.listContributions(activeTripId),
+        api.listExpenses(activeTripId),
+      ]);
+      setContributions(c);
+      setExpenses(e);
     },
   };
 
