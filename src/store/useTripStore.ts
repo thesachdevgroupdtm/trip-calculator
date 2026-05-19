@@ -1,45 +1,46 @@
-'use client';
+"use client";
 
-import { create } from 'zustand';
-import { persist, createJSONStorage } from 'zustand/middleware';
-import type { Contribution, Expense, TripSettings, ExpenseCategory } from '@/types';
-import { generateId } from '@/lib/utils';
+import { useRouter } from "next/navigation";
+import toast from "react-hot-toast";
+import type {
+  Contribution,
+  Expense,
+  ExpenseCategory,
+  TripSettings,
+} from "@/types";
+import { useAuth } from "@/contexts/AuthContext";
+import { useTrip } from "@/contexts/TripContext";
+import * as api from "@/lib/supabase/trips";
 
-interface TripStore {
-  // State
+export type LegacyTripStore = {
   contributions: Contribution[];
   expenses: Expense[];
   settings: TripSettings;
   isAuthenticated: boolean;
   hasHydrated: boolean;
 
-  // Auth
   login: (passcode: string) => boolean;
-  logout: () => void;
+  logout: () => void | Promise<void>;
   setPasscode: (passcode: string) => void;
 
-  // Contributions
-  addContribution: (data: { name: string; amount: number; note?: string }) => void;
-  updateContribution: (id: string, data: Partial<Contribution>) => void;
-  deleteContribution: (id: string) => void;
+  addContribution: (data: { name: string; amount: number; note?: string }) => void | Promise<void>;
+  updateContribution: (id: string, data: Partial<Contribution>) => void | Promise<void>;
+  deleteContribution: (id: string) => void | Promise<void>;
 
-  // Expenses
   addExpense: (data: {
     title: string;
     amount: number;
     category: ExpenseCategory;
     description?: string;
-  }) => void;
-  updateExpense: (id: string, data: Partial<Expense>) => void;
-  deleteExpense: (id: string) => void;
+  }) => void | Promise<void>;
+  updateExpense: (id: string, data: Partial<Expense>) => void | Promise<void>;
+  deleteExpense: (id: string) => void | Promise<void>;
 
-  // Settings
-  updateSettings: (data: Partial<TripSettings>) => void;
-  setQrImage: (image: string | null) => void;
-  setTripTitle: (title: string) => void;
+  updateSettings: (data: Partial<TripSettings>) => void | Promise<void>;
+  setQrImage: (image: string | null) => void | Promise<void>;
+  setTripTitle: (title: string) => void | Promise<void>;
 
-  // Data management
-  resetTrip: () => void;
+  resetTrip: () => void | Promise<void>;
   importData: (data: {
     contributions?: Contribution[];
     expenses?: Expense[];
@@ -47,263 +48,153 @@ interface TripStore {
   }) => void;
   setHasHydrated: (state: boolean) => void;
 
-  // Computed (selectors)
   getTotalCollected: () => number;
   getTotalSpent: () => number;
   getBalance: () => number;
   getPerPersonContribution: () => number;
   getExpensesByCategory: () => Record<ExpenseCategory, number>;
-}
-
-const DEFAULT_SETTINGS: TripSettings = {
-  tripTitle: 'Galaxy Toyota Annual Trip',
-  qrImage: null,
-  passcode: '1234',
-  currency: 'INR',
 };
 
-// Demo / sample data
-const SAMPLE_CONTRIBUTIONS: Contribution[] = [
-  {
-    id: 'c1',
-    name: 'Rohit Sharma',
-    amount: 5000,
-    note: 'Cash collected at start',
-    createdAt: new Date(Date.now() - 86400000 * 3).toISOString(),
-  },
-  {
-    id: 'c2',
-    name: 'Priya Verma',
-    amount: 5000,
-    createdAt: new Date(Date.now() - 86400000 * 3).toISOString(),
-  },
-  {
-    id: 'c3',
-    name: 'Arjun Patel',
-    amount: 5000,
-    note: 'Via UPI',
-    createdAt: new Date(Date.now() - 86400000 * 2).toISOString(),
-  },
-  {
-    id: 'c4',
-    name: 'Sneha Kapoor',
-    amount: 5000,
-    createdAt: new Date(Date.now() - 86400000 * 2).toISOString(),
-  },
-  {
-    id: 'c5',
-    name: 'Vikram Singh',
-    amount: 5000,
-    createdAt: new Date(Date.now() - 86400000).toISOString(),
-  },
-  {
-    id: 'c6',
-    name: 'Anjali Mehta',
-    amount: 5000,
-    createdAt: new Date(Date.now() - 86400000).toISOString(),
-  },
+const CATEGORIES: ExpenseCategory[] = [
+  "Food",
+  "Fuel",
+  "Hotel",
+  "Toll Tax",
+  "Emergency",
+  "Misc",
 ];
 
-const SAMPLE_EXPENSES: Expense[] = [
-  {
-    id: 'e1',
-    title: 'Highway lunch — Punjabi dhaba',
-    amount: 2400,
-    category: 'Food',
-    description: 'Group of 6 — paneer, dal, roti',
-    createdAt: new Date(Date.now() - 86400000 * 2).toISOString(),
-  },
-  {
-    id: 'e2',
-    title: 'Fuel — HP Petrol Pump',
-    amount: 4500,
-    category: 'Fuel',
-    description: 'Full tank, NH-48',
-    createdAt: new Date(Date.now() - 86400000 * 2).toISOString(),
-  },
-  {
-    id: 'e3',
-    title: 'Hotel Royal Inn — Night 1',
-    amount: 8000,
-    category: 'Hotel',
-    description: '3 rooms, breakfast included',
-    createdAt: new Date(Date.now() - 86400000).toISOString(),
-  },
-  {
-    id: 'e4',
-    title: 'Toll booth — Gurgaon-Jaipur',
-    amount: 650,
-    category: 'Toll Tax',
-    createdAt: new Date(Date.now() - 86400000).toISOString(),
-  },
-  {
-    id: 'e5',
-    title: 'Snacks & water',
-    amount: 850,
-    category: 'Misc',
-    createdAt: new Date(Date.now() - 3600000 * 6).toISOString(),
-  },
-];
+async function withToast<T>(fn: () => Promise<T>): Promise<T | undefined> {
+  try {
+    return await fn();
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e);
+    toast.error(msg);
+    return undefined;
+  }
+}
 
-export const useTripStore = create<TripStore>()(
-  persist(
-    (set, get) => ({
-      contributions: SAMPLE_CONTRIBUTIONS,
-      expenses: SAMPLE_EXPENSES,
-      settings: DEFAULT_SETTINGS,
-      isAuthenticated: false,
-      hasHydrated: false,
+function buildState(deps: {
+  user: ReturnType<typeof useAuth>["user"];
+  authLoading: boolean;
+  signOut: ReturnType<typeof useAuth>["signOut"];
+  trip: ReturnType<typeof useTrip>;
+  router: ReturnType<typeof useRouter>;
+}): LegacyTripStore {
+  const { user, authLoading, signOut, trip, router } = deps;
 
-      setHasHydrated: (state) => set({ hasHydrated: state }),
+  const settings: TripSettings = {
+    tripTitle: trip.trip?.title ?? "Galaxy Toyota Annual Trip",
+    qrImage: trip.trip?.qr_image ?? null,
+    passcode: "1234",
+    currency: "INR",
+  };
 
-      // Auth
-      login: (passcode) => {
-        const correct = passcode === get().settings.passcode;
-        if (correct) set({ isAuthenticated: true });
-        return correct;
-      },
-      logout: () => set({ isAuthenticated: false }),
-      setPasscode: (passcode) =>
-        set((state) => ({ settings: { ...state.settings, passcode } })),
+  const contributions = trip.contributions;
+  const expenses = trip.expenses;
 
-      // Contributions
-      addContribution: ({ name, amount, note }) =>
-        set((state) => ({
-          contributions: [
-            {
-              id: generateId(),
-              name: name.trim(),
-              amount,
-              note: note?.trim(),
-              createdAt: new Date().toISOString(),
-            },
-            ...state.contributions,
-          ],
-        })),
+  return {
+    contributions,
+    expenses,
+    settings,
+    isAuthenticated: !!user,
+    hasHydrated: !authLoading,
 
-      updateContribution: (id, data) =>
-        set((state) => ({
-          contributions: state.contributions.map((c) =>
-            c.id === id
-              ? { ...c, ...data, updatedAt: new Date().toISOString() }
-              : c
-          ),
-        })),
+    login: (passcode) => passcode === "1234",
+    logout: async () => {
+      await trip.setActiveTrip(null);
+      await signOut();
+      router.push("/login");
+    },
+    setPasscode: () => {
+      // Passcode auth is deprecated under Supabase
+    },
 
-      deleteContribution: (id) =>
-        set((state) => ({
-          contributions: state.contributions.filter((c) => c.id !== id),
-        })),
+    addContribution: (data) =>
+      withToast(() => trip.addContribution(data)).then(() => undefined),
+    updateContribution: (id, data) =>
+      withToast(() => trip.updateContribution(id, data)).then(() => undefined),
+    deleteContribution: (id) =>
+      withToast(() => trip.deleteContribution(id)).then(() => undefined),
 
-      // Expenses
-      addExpense: ({ title, amount, category, description }) =>
-        set((state) => ({
-          expenses: [
-            {
-              id: generateId(),
-              title: title.trim(),
-              amount,
-              category,
-              description: description?.trim(),
-              createdAt: new Date().toISOString(),
-            },
-            ...state.expenses,
-          ],
-        })),
+    addExpense: (data) => withToast(() => trip.addExpense(data)).then(() => undefined),
+    updateExpense: (id, data) =>
+      withToast(() => trip.updateExpense(id, data)).then(() => undefined),
+    deleteExpense: (id) => withToast(() => trip.deleteExpense(id)).then(() => undefined),
 
-      updateExpense: (id, data) =>
-        set((state) => ({
-          expenses: state.expenses.map((e) =>
-            e.id === id
-              ? { ...e, ...data, updatedAt: new Date().toISOString() }
-              : e
-          ),
-        })),
+    updateSettings: (data) =>
+      withToast(() =>
+        trip.updateTrip({
+          title: data.tripTitle,
+          qr_image: data.qrImage,
+        })
+      ).then(() => undefined),
+    setQrImage: (qrImage) =>
+      withToast(() => trip.updateTrip({ qr_image: qrImage })).then(() => undefined),
+    setTripTitle: (title) =>
+      withToast(() => trip.updateTrip({ title })).then(() => undefined),
 
-      deleteExpense: (id) =>
-        set((state) => ({
-          expenses: state.expenses.filter((e) => e.id !== id),
-        })),
+    resetTrip: async () => {
+      if (!trip.activeTripId) return;
+      const ok =
+        typeof window === "undefined"
+          ? true
+          : window.confirm(
+              "Leave this trip? Your contributions/expenses will remain for other members."
+            );
+      if (!ok) return;
+      const id = trip.activeTripId;
+      try {
+        await api.leaveTrip(id);
+        await trip.setActiveTrip(null);
+        toast.success("Left trip");
+        router.push("/trips");
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : String(e);
+        toast.error(msg);
+      }
+    },
+    importData: () => {
+      // eslint-disable-next-line no-console
+      console.warn(
+        "importData is not supported in cloud mode — data lives in Supabase."
+      );
+    },
+    setHasHydrated: () => {
+      // No-op — hydration tracked via authLoading
+    },
 
-      // Settings
-      updateSettings: (data) =>
-        set((state) => ({ settings: { ...state.settings, ...data } })),
-      setQrImage: (qrImage) =>
-        set((state) => ({ settings: { ...state.settings, qrImage } })),
-      setTripTitle: (tripTitle) =>
-        set((state) => ({ settings: { ...state.settings, tripTitle } })),
+    getTotalCollected: () => contributions.reduce((s, c) => s + c.amount, 0),
+    getTotalSpent: () => expenses.reduce((s, e) => s + e.amount, 0),
+    getBalance: () =>
+      contributions.reduce((s, c) => s + c.amount, 0) -
+      expenses.reduce((s, e) => s + e.amount, 0),
+    getPerPersonContribution: () => {
+      const total = contributions.reduce((s, c) => s + c.amount, 0);
+      const unique = new Set(contributions.map((c) => c.name.toLowerCase())).size;
+      return unique > 0 ? total / unique : 0;
+    },
+    getExpensesByCategory: () => {
+      const result = CATEGORIES.reduce(
+        (acc, cat) => ({ ...acc, [cat]: 0 }),
+        {} as Record<ExpenseCategory, number>
+      );
+      expenses.forEach((e) => {
+        result[e.category] += e.amount;
+      });
+      return result;
+    },
+  };
+}
 
-      // Data
-      resetTrip: () =>
-        set((state) => ({
-          contributions: [],
-          expenses: [],
-          settings: { ...state.settings },
-        })),
-      importData: (data) =>
-        set((state) => ({
-          contributions: data.contributions ?? state.contributions,
-          expenses: data.expenses ?? state.expenses,
-          settings: data.settings ?? state.settings,
-        })),
+export function useTripStore<T = LegacyTripStore>(
+  selector?: (s: LegacyTripStore) => T
+): T {
+  const { user, loading: authLoading, signOut } = useAuth();
+  const trip = useTrip();
+  const router = useRouter();
 
-      // Computed
-      getTotalCollected: () =>
-        get().contributions.reduce((sum, c) => sum + c.amount, 0),
-      getTotalSpent: () =>
-        get().expenses.reduce((sum, e) => sum + e.amount, 0),
-      getBalance: () => {
-        const s = get();
-        return (
-          s.contributions.reduce((sum, c) => sum + c.amount, 0) -
-          s.expenses.reduce((sum, e) => sum + e.amount, 0)
-        );
-      },
-      getPerPersonContribution: () => {
-        const s = get();
-        const total = s.contributions.reduce((sum, c) => sum + c.amount, 0);
-        const uniqueContributors = new Set(s.contributions.map((c) => c.name.toLowerCase())).size;
-        return uniqueContributors > 0 ? total / uniqueContributors : 0;
-      },
-      getExpensesByCategory: () => {
-        const categories: ExpenseCategory[] = [
-          'Food',
-          'Fuel',
-          'Hotel',
-          'Toll Tax',
-          'Emergency',
-          'Misc',
-        ];
-        const result = categories.reduce(
-          (acc, cat) => ({ ...acc, [cat]: 0 }),
-          {} as Record<ExpenseCategory, number>
-        );
-        get().expenses.forEach((e) => {
-          result[e.category] += e.amount;
-        });
-        return result;
-      },
-    }),
-    {
-      name: 'galaxy-toyota-trip',
-      storage: createJSONStorage(() => {
-        if (typeof window === 'undefined') {
-          return {
-            getItem: () => null,
-            setItem: () => {},
-            removeItem: () => {},
-          };
-        }
-        return localStorage;
-      }),
-      partialize: (state) => ({
-        contributions: state.contributions,
-        expenses: state.expenses,
-        settings: state.settings,
-      }),
-      onRehydrateStorage: () => (state) => {
-        state?.setHasHydrated(true);
-      },
-    }
-  )
-);
+  const state = buildState({ user, authLoading, signOut, trip, router });
+
+  return (selector ? selector(state) : (state as unknown as T)) as T;
+}

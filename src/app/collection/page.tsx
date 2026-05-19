@@ -3,7 +3,7 @@
 import { useMemo, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Search, Plus, X } from 'lucide-react';
-import { AuthGuard } from '@/components/layout/AuthGuard';
+import { TripGuard } from '@/components/layout/TripGuard';
 import { AppHeader } from '@/components/layout/AppHeader';
 import { BottomNav } from '@/components/layout/BottomNav';
 import { QRDisplay } from '@/components/cards/QRDisplay';
@@ -24,9 +24,9 @@ import toast from 'react-hot-toast';
 
 export default function CollectionPage() {
   return (
-    <AuthGuard>
+    <TripGuard>
       <CollectionContent />
-    </AuthGuard>
+    </TripGuard>
   );
 }
 

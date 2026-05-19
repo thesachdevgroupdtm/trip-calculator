@@ -10,7 +10,7 @@ import {
   BarChart3,
   Trophy,
 } from 'lucide-react';
-import { AuthGuard } from '@/components/layout/AuthGuard';
+import { TripGuard } from '@/components/layout/TripGuard';
 import { AppHeader } from '@/components/layout/AppHeader';
 import { BottomNav } from '@/components/layout/BottomNav';
 import { ExpensePieChart } from '@/components/charts/ExpensePieChart';
@@ -22,9 +22,9 @@ import { formatCurrency } from '@/lib/utils';
 
 export default function AnalyticsPage() {
   return (
-    <AuthGuard>
+    <TripGuard>
       <AnalyticsContent />
-    </AuthGuard>
+    </TripGuard>
   );
 }
 

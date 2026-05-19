@@ -13,7 +13,7 @@ import {
   Sparkles,
 } from 'lucide-react';
 import { useTripStore } from '@/store/useTripStore';
-import { AuthGuard } from '@/components/layout/AuthGuard';
+import { TripGuard } from '@/components/layout/TripGuard';
 import { AppHeader } from '@/components/layout/AppHeader';
 import { BottomNav } from '@/components/layout/BottomNav';
 import { PullToRefresh } from '@/components/layout/PullToRefresh';
@@ -26,9 +26,9 @@ import toast from 'react-hot-toast';
 
 export default function DashboardPage() {
   return (
-    <AuthGuard>
+    <TripGuard>
       <DashboardContent />
-    </AuthGuard>
+    </TripGuard>
   );
 }
 

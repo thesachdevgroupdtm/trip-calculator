@@ -3,7 +3,7 @@
 import { useMemo, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Search, Plus, TrendingDown, Receipt } from 'lucide-react';
-import { AuthGuard } from '@/components/layout/AuthGuard';
+import { TripGuard } from '@/components/layout/TripGuard';
 import { AppHeader } from '@/components/layout/AppHeader';
 import { BottomNav } from '@/components/layout/BottomNav';
 import { ExpenseCard, CATEGORY_META } from '@/components/cards/ExpenseCard';
@@ -41,9 +41,9 @@ const CATEGORIES: ExpenseCategory[] = [
 
 export default function ExpensePage() {
   return (
-    <AuthGuard>
+    <TripGuard>
       <ExpenseContent />
-    </AuthGuard>
+    </TripGuard>
   );
 }
 

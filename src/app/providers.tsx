@@ -3,6 +3,8 @@
 import { ThemeProvider as NextThemesProvider } from 'next-themes';
 import { Toaster } from 'react-hot-toast';
 import { useEffect } from 'react';
+import { AuthProvider } from '@/contexts/AuthContext';
+import { TripProvider } from '@/contexts/TripContext';
 
 export function Providers({ children }: { children: React.ReactNode }) {
   // Register service worker
@@ -25,7 +27,9 @@ export function Providers({ children }: { children: React.ReactNode }) {
       enableSystem={false}
       disableTransitionOnChange
     >
-      {children}
+      <AuthProvider>
+        <TripProvider>{children}</TripProvider>
+      </AuthProvider>
       <Toaster
         position="top-center"
         toastOptions={{
