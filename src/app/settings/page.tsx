@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
@@ -208,7 +208,7 @@ function SettingsContent() {
           c.name,
           formatCurrency(c.amount),
           formatDate(c.createdAt),
-          c.note ?? '—',
+          c.note ?? 'â€”',
         ]),
         theme: 'striped',
         headStyles: { fillColor: [10, 14, 28], textColor: 255 },
@@ -250,7 +250,7 @@ function SettingsContent() {
         doc.setFontSize(8);
         doc.setTextColor(120, 120, 120);
         doc.text(
-          `Galaxy Toyota Trip Calculator  •  Page ${i} of ${pageCount}`,
+          `Galaxy Toyota Trip Calculator  â€¢  Page ${i} of ${pageCount}`,
           pageWidth / 2,
           doc.internal.pageSize.getHeight() - 20,
           { align: 'center' },
@@ -299,7 +299,7 @@ function SettingsContent() {
             </div>
             <div className="font-display text-2xl leading-tight">{settings.tripTitle}</div>
             <div className="text-xs text-muted-foreground">
-              {contributions.length} members · {expenses.length} expenses
+              {contributions.length} members Â· {expenses.length} expenses
             </div>
           </div>
         </motion.div>
@@ -399,7 +399,7 @@ function SettingsContent() {
             Galaxy Toyota Trip Calculator
           </div>
           <div className="text-[10px] text-muted-foreground/70">
-            v1.0.0 · Made with care
+            v1.0.0 Â· Made with care
           </div>
         </motion.div>
       </main>
@@ -450,7 +450,7 @@ function SettingsContent() {
                 maxLength={4}
                 value={currentPass}
                 onChange={(e) => setCurrentPass(e.target.value.replace(/\D/g, ''))}
-                placeholder="••••"
+                placeholder="â€¢â€¢â€¢â€¢"
               />
             </div>
             <div className="space-y-2">
@@ -462,7 +462,7 @@ function SettingsContent() {
                 maxLength={4}
                 value={newPass}
                 onChange={(e) => setNewPass(e.target.value.replace(/\D/g, ''))}
-                placeholder="••••"
+                placeholder="â€¢â€¢â€¢â€¢"
               />
             </div>
             <div className="space-y-2">
@@ -474,7 +474,7 @@ function SettingsContent() {
                 maxLength={4}
                 value={confirmPass}
                 onChange={(e) => setConfirmPass(e.target.value.replace(/\D/g, ''))}
-                placeholder="••••"
+                placeholder="â€¢â€¢â€¢â€¢"
               />
             </div>
           </div>
@@ -495,7 +495,7 @@ function SettingsContent() {
         onOpenChange={setResetOpen}
         title="Reset everything?"
         description="All contributions and expenses will be permanently deleted. This action cannot be undone."
-        confirmText="Yes, reset"
+        confirmLabel="Yes, reset"
         onConfirm={handleReset}
       />
 
@@ -505,7 +505,7 @@ function SettingsContent() {
         onOpenChange={setLogoutOpen}
         title="Log out?"
         description="You'll need to enter the passcode again to return."
-        confirmText="Log out"
+        confirmLabel="Log out"
         variant="default"
         onConfirm={handleLogout}
       />
