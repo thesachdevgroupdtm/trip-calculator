@@ -43,11 +43,11 @@ export function PullToRefresh({
 
     if (pullY.get() >= threshold) {
       setRefreshing(true);
-      await animate(pullY, threshold * 0.6, { duration: 0.2 }).then();
+      await animate(pullY, threshold * 0.6, { duration: 0.2 });
       try {
         await onRefresh();
       } finally {
-        await animate(pullY, 0, { duration: 0.3 }).then();
+        await animate(pullY, 0, { duration: 0.3 });
         setRefreshing(false);
       }
     } else {
