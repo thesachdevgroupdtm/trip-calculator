@@ -12,7 +12,7 @@ interface QRDisplayProps {
   payeeUpi?: string;
 }
 
-export function QRDisplay({ amount, payeeUpi = 'galaxytoyota@upi' }: QRDisplayProps) {
+export function QRDisplay({ amount, payeeUpi = 'ganeshkumargupta1988@okhdfcbank' }: QRDisplayProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const qrImage = useTripStore((s) => s.settings.qrImage);
   const setQrImage = useTripStore((s) => s.setQrImage);
