@@ -364,7 +364,7 @@ function SettingsContent() {
             Galaxy Toyota Trip Calculator
           </div>
           <div className="text-[10px] text-muted-foreground/70">
-            v1.0.0 Â· Made with care
+            v1.0.0 Made by Harsh Sharma
           </div>
         </motion.div>
       </main>
