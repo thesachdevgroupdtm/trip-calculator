@@ -53,30 +53,19 @@ const Ctx = createContext<TripCtx | null>(null);
 
 export function TripProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth();
-  const [activeTripId, setActiveTripId] = useState<string | null>(null);
+  const [activeTripId, setActiveTripId] = useState<string | null>(() => {
+    if (typeof window === "undefined") return null;
+    return localStorage.getItem(STORAGE_KEY);
+  });
   const [trip, setTrip] = useState<TripRow | null>(null);
   const [contributions, setContributions] = useState<Contribution[]>([]);
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [loading, setLoading] = useState(true);
-  const activeIdRef = useRef<string | null>(null);
+  const activeIdRef = useRef<string | null>(activeTripId);
 
   useEffect(() => {
-    if (typeof window === "undefined") return;
-    const saved = localStorage.getItem(STORAGE_KEY);
-    if (saved) setActiveTripId(saved);
-    else setLoading(false);
-  }, []);
-
-  useEffect(() => {
-    if (!user) {
-      setTrip(null);
-      setContributions([]);
-      setExpenses([]);
-      setActiveTripId(null);
-      activeIdRef.current = null;
-      setLoading(false);
-    }
-  }, [user]);
+    activeIdRef.current = activeTripId;
+  }, [activeTripId]);
 
   const fetchAll = useCallback(async (tripId: string) => {
     setLoading(true);
@@ -94,17 +83,53 @@ export function TripProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  useEffect(() => {
-    activeIdRef.current = activeTripId;
-    if (!activeTripId || !user) {
+  const setActiveTrip = useCallback(async (id: string | null) => {
+    if (!id) {
+      setActiveTripId(null);
       setTrip(null);
       setContributions([]);
       setExpenses([]);
       setLoading(false);
+      if (typeof window !== "undefined") localStorage.removeItem(STORAGE_KEY);
       return;
     }
-    void fetchAll(activeTripId);
-  }, [activeTripId, user, fetchAll]);
+    setLoading(true);
+    setActiveTripId(id);
+    if (typeof window !== "undefined") localStorage.setItem(STORAGE_KEY, id);
+    try {
+      const [tripRow, contribs, exps] = await Promise.all([
+        api.getTrip(id),
+        api.listContributions(id),
+        api.listExpenses(id),
+      ]);
+      setTrip(tripRow);
+      setContributions(contribs);
+      setExpenses(exps);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!user) {
+      setTrip(null);
+      setContributions([]);
+      setExpenses([]);
+      setActiveTripId(null);
+      activeIdRef.current = null;
+      setLoading(false);
+    }
+  }, [user]);
+
+  useEffect(() => {
+    if (!user) return;
+    const id = activeIdRef.current;
+    if (id) {
+      void setActiveTrip(id);
+    } else {
+      setLoading(false);
+    }
+  }, [user, setActiveTrip]);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -145,14 +170,6 @@ export function TripProvider({ children }: { children: ReactNode }) {
       void supabase.removeChannel(channel);
     };
   }, [activeTripId, user]);
-
-  const setActiveTrip = useCallback(async (tripId: string | null) => {
-    if (typeof window !== "undefined") {
-      if (tripId) localStorage.setItem(STORAGE_KEY, tripId);
-      else localStorage.removeItem(STORAGE_KEY);
-    }
-    setActiveTripId(tripId);
-  }, []);
 
   const refresh = useCallback(async () => {
     if (activeTripId) await fetchAll(activeTripId);

@@ -16,10 +16,13 @@ export function TripGuard({ children }: { children: React.ReactNode }) {
       router.replace("/login");
       return;
     }
+    // Wait for trip data to finish loading before deciding to bounce —
+    // setActiveTrip sets activeTripId and loads in one async step.
+    if (tripLoading) return;
     if (!activeTripId) {
       router.replace("/trips");
     }
-  }, [authLoading, user, activeTripId, router]);
+  }, [authLoading, user, tripLoading, activeTripId, router]);
 
   if (authLoading || !user || !activeTripId || tripLoading || !trip) {
     return (

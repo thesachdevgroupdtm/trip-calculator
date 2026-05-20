@@ -14,6 +14,7 @@ import {
   Crown,
   UserPlus,
   Sparkles,
+  Loader2,
 } from "lucide-react";
 import toast from "react-hot-toast";
 import { Button } from "@/components/ui/Button";
@@ -51,6 +52,7 @@ function TripsHub() {
   const [createOpen, setCreateOpen] = useState(false);
   const [joinOpen, setJoinOpen] = useState(false);
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
+  const [openingTripId, setOpeningTripId] = useState<string | null>(null);
 
   const greetingName = user?.email?.split("@")[0] ?? "there";
 
@@ -72,8 +74,16 @@ function TripsHub() {
   }, []);
 
   const handleOpen = async (tripId: string) => {
-    await setActiveTrip(tripId);
-    router.push("/dashboard");
+    if (openingTripId) return;
+    setOpeningTripId(tripId);
+    try {
+      await setActiveTrip(tripId);
+      router.push("/dashboard");
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Could not open trip";
+      toast.error(msg);
+      setOpeningTripId(null);
+    }
   };
 
   const handleSignOut = async () => {
@@ -190,6 +200,7 @@ function TripsHub() {
               {trips.map((t) => {
                 const isOwner = t.owner_id === user?.id;
                 const copied = copiedCode === t.invite_code;
+                const opening = openingTripId === t.id;
                 return (
                   <li key={t.id}>
                     <motion.div
@@ -198,7 +209,8 @@ function TripsHub() {
                     >
                       <button
                         onClick={() => handleOpen(t.id)}
-                        className="flex w-full items-center gap-3 text-left"
+                        disabled={!!openingTripId}
+                        className="flex w-full items-center gap-3 text-left disabled:opacity-60"
                       >
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2">
@@ -230,7 +242,11 @@ function TripsHub() {
                             <span>{formatCurrency(t.total_collected)} collected</span>
                           </div>
                         </div>
-                        <ArrowRight className="h-4 w-4 text-muted-foreground" />
+                        {opening ? (
+                          <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                        ) : (
+                          <ArrowRight className="h-4 w-4 text-muted-foreground" />
+                        )}
                       </button>
 
                       <div className="mt-3 flex items-center justify-between border-t border-border/40 pt-3">
